@@ -8,6 +8,8 @@ InstaShield_Main:
     bne.s   InstaShield_Return      ; If yes, don't do Insta-Shield
     tst.b   (v_invinc).w            ; Is Sonic invincible?
     bne.s   InstaShield_Return      ; If yes, don't do Insta-Shield
+    tst.b   (v_air).w               ; Is Sonic in the air?
+    beq.s   InstaShield_Return      ; If no, don't do Insta-Shield
     
     move.b  (v_jpadpress1).w,d0     ; Get button press
     andi.b  #btnABC,d0              ; Check for A, B, or C
@@ -28,6 +30,3 @@ InstaShield_Main:
 
 InstaShield_Return:
     rts
-
-; Note: This requires id_InstaShield to be defined in constants.asm
-; and the object code to be included in the object pointers table.

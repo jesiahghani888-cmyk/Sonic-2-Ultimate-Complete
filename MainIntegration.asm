@@ -3,6 +3,9 @@
 ; This file includes all the new features and provides a central point for integration.
 ; ===========================================================================
 
+; Include Constants
+include "S2UC_Constants.asm"
+
 ; Include Control Moves
 include "InstaShield.asm"
 include "DropDash.asm"
