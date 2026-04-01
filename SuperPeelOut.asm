@@ -4,46 +4,64 @@
 ; ===========================================================================
 
 SuperPeelOut_Main:
-    tst.b   (f_peelout).w           ; Is Super Peel-Out already active?
-    bne.s   SuperPeelOut_CheckRelease ; If yes, check for release
-    
-    move.b  (v_jpadhold1).w,d0      ; Get button hold
-    andi.b  #btnUp,d0               ; Check for Up
-    beq.s   SuperPeelOut_Return     ; If not held, return
-    
-    move.b  (v_jpadpress1).w,d0     ; Get button press
-    andi.b  #btnABC,d0              ; Check for A, B, or C
-    beq.s   SuperPeelOut_Return     ; If not pressed, return
-    
-    ; Check if Sonic is on the ground and stationary
     tst.b   (v_air).w               ; Is Sonic in the air?
-    bne.s   SuperPeelOut_Return     ; If yes, return
-    tst.w   (v_xvel).w              ; Is Sonic moving?
-    bne.s   SuperPeelOut_Return     ; If yes, return
+    bne.s   SuperPeelOut_Reset      ; If yes, reset Peel-Out
     
-    ; Charge Super Peel-Out
-    move.b  #1,(f_peelout).w        ; Set Super Peel-Out flag
-    move.w  #$B6,d0                 ; Sound ID for Super Peel-Out charge
-    jsr     (PlaySound).l           ; Play sound
+    tst.b   (f_peelout).w           ; Already charging?
+    bne.s   SuperPeelOut_Charging   ; If yes, handle charging
     
-SuperPeelOut_CheckRelease:
-    move.b  (v_jpadhold1).w,d0      ; Get button hold
-    andi.b  #btnUp,d0               ; Check for Up
-    bne.s   SuperPeelOut_Return     ; If still held, return
+    ; Check for start of Peel-Out
+    move.b  (v_jpadhold1).w,d0      ; Get held buttons
+    andi.b  #btnUp,d0               ; Holding Up?
+    beq.s   SuperPeelOut_Return     ; If no, return
     
-    ; Release Super Peel-Out
-    clr.b   (f_peelout).w           ; Clear Super Peel-Out flag
+    move.b  (v_jpadpress1).w,d0     ; Get pressed buttons
+    andi.b  #btnABC,d0              ; Pressed A, B, or C?
+    beq.s   SuperPeelOut_Return     ; If no, return
     
-    ; Execute Peel-Out
-    move.w  #$C00,d0                ; Peel-Out speed
+    tst.w   (v_xvel).w              ; Stationary?
+    bne.s   SuperPeelOut_Return     ; If no, return
+    
+    ; Start Peel-Out
+    move.b  #1,(f_peelout).w        ; Set Peel-Out flag
+    move.w  #$B6,d0                 ; Sound ID for Peel-Out charge
+    jsr     (PlaySound).l
+    bra.s   SuperPeelOut_Return
+
+SuperPeelOut_Charging:
+    move.b  (v_jpadhold1).w,d0      ; Get held buttons
+    andi.b  #btnUp,d0               ; Still holding Up?
+    beq.s   SuperPeelOut_Release    ; If no, release Peel-Out
+    
+    ; Increment charge
+    addq.b  #1,(v_dropdash_charge).w ; Reuse charge counter
+    cmpi.b  #30,(v_dropdash_charge).w ; Fully charged?
+    blo.s   SuperPeelOut_Return
+    
+    ; Max charge reached
+    move.b  #30,(v_dropdash_charge).w
+    bra.s   SuperPeelOut_Return
+
+SuperPeelOut_Release:
+    ; Perform Peel-Out
+    clr.b   (f_peelout).w
+    clr.b   (v_dropdash_charge).w
+    
+    move.w  #$C00,d0                ; Base speed
     tst.b   (v_flip).w              ; Facing left?
-    beq.s   SuperPeelOut_Right
+    beq.s   @facingRight
     neg.w   d0                      ; Reverse speed
-SuperPeelOut_Right:
-    move.w  d0,(v_xvel).w           ; Set X velocity
-    move.b  #id_Run,0(a0)           ; Set Sonic to running state
-    move.w  #$B7,d0                 ; Sound ID for Super Peel-Out release
-    jsr     (PlaySound).l           ; Play sound
+@facingRight:
+    move.w  d0,(v_xvel).w           ; Set horizontal velocity
+    
+    move.b  #id_Run,0(a0)           ; Set state to running
+    move.w  #$B7,d0                 ; Sound ID for Peel-Out release
+    jsr     (PlaySound).l
+    bra.s   SuperPeelOut_Return
+
+SuperPeelOut_Reset:
+    clr.b   (f_peelout).w
+    clr.b   (v_dropdash_charge).w
 
 SuperPeelOut_Return:
     rts

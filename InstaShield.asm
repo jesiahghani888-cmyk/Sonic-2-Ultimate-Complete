@@ -11,13 +11,17 @@ InstaShield_Main:
     tst.b   (v_air).w               ; Is Sonic in the air?
     beq.s   InstaShield_Return      ; If no, don't do Insta-Shield
     
+    ; Check if already used in this jump
+    tst.b   (f_instashield).w
+    bne.s   InstaShield_Return
+    
     move.b  (v_jpadpress1).w,d0     ; Get button press
     andi.b  #btnABC,d0              ; Check for A, B, or C
     beq.s   InstaShield_Return      ; If not pressed, return
     
     ; Trigger Insta-Shield
     move.b  #1,(f_instashield).w    ; Set Insta-Shield flag
-    move.w  #$BC,d0                 ; Sound ID for Insta-Shield
+    move.w  #$BC,d0                 ; Sound ID for Insta-Shield (S3K value, adjust if needed)
     jsr     (PlaySound).l           ; Play sound
     
     ; Create Insta-Shield Object
@@ -29,4 +33,9 @@ InstaShield_Main:
     move.l  a0,24(a1)               ; Link to Sonic
 
 InstaShield_Return:
+    ; Reset flag when grounded
+    tst.b   (v_air).w
+    bne.s   @exit
+    clr.b   (f_instashield).w
+@exit:
     rts

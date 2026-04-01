@@ -4,21 +4,31 @@
 ; ===========================================================================
 
 LightningShield_Main:
-    cmpi.b  #id_LightningShield,(v_shield).w ; Does Sonic have a Lightning Shield?
-    bne.s   LightningShield_Return  ; If not, return
+    cmpi.b  #4,(v_shield).w         ; Does Sonic have a Lightning Shield?
+    bne.s   LightningShield_Return  ; If no, return
+    
+    tst.b   (v_air).w               ; Is Sonic in the air?
+    beq.s   LightningShield_Reset   ; If no, reset double jump flag
+    
+    tst.b   (f_doublejump).w        ; Already double jumped?
+    bne.s   LightningShield_Return  ; If yes, don't jump again
     
     move.b  (v_jpadpress1).w,d0     ; Get button press
     andi.b  #btnABC,d0              ; Check for A, B, or C
     beq.s   LightningShield_Return  ; If not pressed, return
     
-    ; Trigger Double Jump
-    move.b  #1,(f_doublejump).w     ; Set Double Jump flag
-    move.w  #$BB,d0                 ; Sound ID for Double Jump
-    jsr     (PlaySound).l           ; Play sound
+    ; Perform Lightning Double Jump
+    move.b  #1,(f_doublejump).w     ; Set double jump flag
+    move.w  #$BB,d0                 ; Sound ID for Lightning Jump
+    jsr     (PlaySound).l
     
-    ; Execute Jump
-    move.w  #-$600,(v_yvel).w       ; Set Y velocity to jump up
-    move.w  #0,(v_xvel).w           ; Stop horizontal movement
+    move.w  #-$600,(v_yvel).w       ; Set vertical velocity (upward)
+    clr.w   (v_xvel).w              ; Zero horizontal velocity
+
+LightningShield_Reset:
+    tst.b   (v_air).w
+    bne.s   LightningShield_Return
+    clr.b   (f_doublejump).w
 
 LightningShield_Return:
     rts
